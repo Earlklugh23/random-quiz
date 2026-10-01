@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>랜덤 문제 풀이 & 스마트 마스킹 뷰어</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Pretendard & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    body {
+      font-family: 'Pretendard', 'Inter', sans-serif;
+      user-select: none;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+    /* 가림막 스티커 애니메이션: 흰색 여백과 완전히 동화 */
+    .answer-mask {
+      background-color: #ffffff;
+      transition: opacity 0.2s ease-in-out;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .answer-mask.revealed {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  </style>
+</head>
+
+<body class="bg-white text-slate-800 min-h-screen flex flex-col justify-between overflow-x-hidden antialiased selection:bg-rose-500 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-100 bg-white sticky top-0 z-30 px-4 lg:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-gradient-to-tr from-rose-500 via-rose-600 to-indigo-600 rounded-xl shadow-md shadow-rose-500/20 text-white">
+          <i data-lucide="eye-off" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            랜덤 문제 퀴즈 뷰어
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">Camouflage Masking</span>
+          </h1>
+          <p class="text-xs text-slate-500">정답 번호 옆 빨간 체크를 <span class="text-rose-600 font-semibold">흰색 박스로 감쪽같이 가려두고</span> 클릭 시 공개합니다</p>
+        </div>
+      </div>
+
+      <!-- Action Button: 파일 추가 -->
+      <div class="flex items-center gap-2.5">
+        <input type="file" id="fileInput" multiple class="hidden" accept="image/*">
+
+        <button id="btnSelectFiles" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-indigo-600/25 transition">
+          <i data-lucide="file-plus" class="w-4 h-4"></i>
+          <span>파일 추가</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Display Stage -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col items-center justify-center relative">
+    
+    <!-- Empty State / Dropzone -->
+    <div id="dropzoneArea" class="w-full max-w-2xl border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/50 bg-white rounded-3xl p-8 sm:p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer group my-8 shadow-sm">
+      <div class="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:scale-110 group-hover:text-rose-500 group-hover:bg-rose-50 transition duration-300 mb-5">
+        <i data-lucide="scan" class="w-10 h-10"></i>
+      </div>
+      <h3 class="text-xl font-bold text-slate-800 mb-2">문제 이미지를 여기에 끌어다 놓으세요</h3>
+      <p class="text-sm text-slate-500 max-w-md mb-6 leading-relaxed">
+        우측 상단 <span class="text-indigo-600 font-semibold">'파일 추가'</span> 버튼을 누르거나 이미지를 화면에 직접 드래그하세요.
+      </p>
+      
+      <div class="flex flex-col gap-2 max-w-md text-left w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs text-slate-600">
+        <div class="flex items-center gap-2 font-semibold text-rose-600">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          <span>완벽한 정답 가림 원리</span>
+        </div>
+        <p class="text-slate-600 leading-normal">
+          캡처할 때 정답 번호 왼쪽 빈 공간에 <span class="text-rose-600 font-bold">빨간색 체크(V)나 점</span>을 찍어두면, 앱이 해당 위치를 <span class="text-slate-900 font-bold">아무 글자 없는 순수 흰색 박스</span>로 덮어 일반 종이 여백처럼 위장합니다.
+        </p>
+        <span class="text-slate-400 text-[11px] mt-1">* 화면을 터치하거나 클릭하면 흰색 박스가 사라지면서 숨겨둔 빨간 체크가 드러납니다.</span>
+      </div>
+    </div>
+
+    <!-- Active Question Viewer Container (Hidden Initially) -->
+    <div id="quizContainer" class="hidden w-full flex flex-col items-center gap-4">
+      
+      <!-- Interactive Question Canvas Area -->
+      <div class="relative w-full flex justify-center items-center group cursor-pointer" id="imageInteractionWrapper">
+        <div class="relative inline-block max-w-full max-h-[72vh] bg-white border-0 shadow-none p-0" id="imageWrapper">
+          
+          <!-- Question Image -->
+          <img id="currentImage" src="" alt="문제 이미지" class="block max-w-full max-h-[70vh] object-contain select-none pointer-events-none transition-all duration-200 bg-white">
+
+          <!-- Auto-generated Red Mask Overlays will be injected here -->
+          <div id="maskLayer" class="absolute inset-0 pointer-events-none"></div>
+
+          <!-- Fallback Answer Overlay (For images that only have filename answer or no red found) -->
+          <div id="answerOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex-col items-center justify-center p-6 text-center transition-all duration-300 pointer-events-none">
+            <div class="transform transition duration-300 scale-95 bg-white border-2 border-rose-400 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl pointer-events-auto">
+              <span class="text-xs uppercase tracking-wider font-extrabold text-rose-600 mb-1 block">Answer Key</span>
+              <div class="my-3 flex items-center justify-center">
+                <span id="answerNumberText" class="text-6xl sm:text-7xl font-black text-rose-600 drop-shadow-sm font-mono">
+                  3
+                </span>
+              </div>
+              <p id="answerDetailText" class="text-sm font-medium text-slate-600 mb-4 px-2 break-all line-clamp-2">
+                정답 번호: 3번
+              </p>
+              <div class="flex items-center justify-center gap-2 text-xs text-slate-400 border-t border-slate-100 pt-3">
+                <span>화면을 다시 누르면 가려집니다</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Bottom Controls: Prev, Reveal Toggle, Next -->
+      <div class="w-full max-w-xl flex items-center justify-center gap-3 mt-1">
+        <button id="btnPrev" class="px-4 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl border border-slate-200 shadow-sm transition flex items-center gap-2">
+          <i data-lucide="chevron-left" class="w-5 h-5 text-slate-500"></i>
+          <span class="hidden sm:inline">이전 문제</span>
+        </button>
+
+        <button id="btnToggleAnswer" class="flex-1 py-3 px-6 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl border border-rose-200 shadow-sm transition flex items-center justify-center gap-2">
+          <i data-lucide="eye" id="btnToggleAnswerIcon" class="w-5 h-5 text-rose-600"></i>
+          <span id="btnToggleAnswerLabel">정답 확인 (가림막 열기)</span>
+        </button>
+
+        <button id="btnNext" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/25 transition flex items-center gap-2">
+          <span>다음 문제</span>
+          <i data-lucide="arrow-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Keyboard shortcuts legend (라이트 모드 고대비 가독성 스타일) -->
+      <div class="text-sm sm:text-base font-medium text-slate-700 bg-white border border-slate-200 px-6 py-3 rounded-2xl shadow-sm flex items-center gap-4 sm:gap-7 flex-wrap justify-center mt-2">
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 font-bold font-mono text-sm sm:text-base shadow-sm">↑</kbd>
+          <span class="text-slate-300 font-bold">/</span>
+          <kbd class="px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 font-bold font-mono text-sm sm:text-base shadow-sm">↓</kbd>
+          <span class="text-slate-300 font-bold">/</span>
+          <kbd class="px-2.5 py-1 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 font-bold font-mono text-sm sm:text-base shadow-sm">화면 터치</kbd>
+          <span class="ml-1 text-slate-800 font-semibold">정답 확인</span>
+        </span>
+        <span class="hidden sm:inline text-slate-200">|</span>
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-600 font-bold font-mono text-sm sm:text-base shadow-sm">→</kbd>
+          <span class="text-slate-300 font-bold">/</span>
+          <kbd class="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-600 font-bold font-mono text-sm sm:text-base shadow-sm">Enter</kbd>
+          <span class="ml-1 text-slate-800 font-semibold">다음 문제</span>
+        </span>
+        <span class="hidden sm:inline text-slate-200">|</span>
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-2.5 py-1 bg-slate-100 border border-slate-300 rounded-lg text-slate-700 font-bold font-mono text-sm sm:text-base shadow-sm">←</kbd>
+          <span class="ml-1 text-slate-800 font-semibold">이전 문제</span>
+        </span>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Offscreen Canvas for pixel processing -->
+  <canvas id="analysisCanvas" class="hidden"></canvas>
+
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white py-3 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <span>랜덤 이미지 문제 풀이 & 빨간색 정답 마스킹 도우미</span>
+      <span>모든 연산은 브라우저 메모리 안에서만 안전하게 실행됩니다.</span>
+    </div>
+  </footer>
+
+  <script>
+    // State management
+    const state = {
+      images: [],           // [{ id, name, url, file, parsedAnswer, masks: [] }]
+      history: [],          // Visited indices
+      historyPointer: -1,
+      isAnswerRevealed: false
+    };
+
+    // DOM Elements
+    const fileInput = document.getElementById('fileInput');
+    const btnSelectFiles = document.getElementById('btnSelectFiles');
+    const dropzoneArea = document.getElementById('dropzoneArea');
+    const quizContainer = document.getElementById('quizContainer');
+    const currentImage = document.getElementById('currentImage');
+    const imageInteractionWrapper = document.getElementById('imageInteractionWrapper');
+    const maskLayer = document.getElementById('maskLayer');
+    const answerOverlay = document.getElementById('answerOverlay');
+    const answerNumberText = document.getElementById('answerNumberText');
+    const answerDetailText = document.getElementById('answerDetailText');
+    const btnToggleAnswer = document.getElementById('btnToggleAnswer');
+    const btnToggleAnswerLabel = document.getElementById('btnToggleAnswerLabel');
+    const btnToggleAnswerIcon = document.getElementById('btnToggleAnswerIcon');
+    const btnNext = document.getElementById('btnNext');
+    const btnPrev = document.getElementById('btnPrev');
+    const analysisCanvas = document.getElementById('analysisCanvas');
+    const analysisCtx = analysisCanvas.getContext('2d', { willReadFrequently: true });
+
+    /**
+     * 빨간색 픽셀 판별 알고리즘
+     * - 선명한 빨강, 다홍색, 진한 빨간색 펜/형광펜 마킹 감지
+     * - 흰색/회색 종이 배경이나 검은 글씨와 혼동되지 않도록 색차(Color Difference) 적용
+     */
+    function isRedPixel(r, g, b, a) {
+      if (a < 80) return false; // 투명 픽셀 제외
+
+      // 빨간색이 초록/파랑보다 확실하게 높고 채도가 높은지 검사
+      const maxOther = Math.max(g, b);
+      const isDominantRed = (r - maxOther) > 42;
+      const isVivid = r > 130;
+
+      // 자홍색/마젠타 계열 방지 (r과 b가 둘 다 너무 높지 않도록)
+      const notPurple = (r - b) > 30;
+
+      return isDominantRed && isVivid && notPurple;
+    }
+
+    /**
+     * 이미지 내 빨간색 영역을 스캔하여 바운딩 박스(가림막 영역)들을 추출
+     */
+    async function detectRedRegions(imgElement) {
+      return new Promise((resolve) => {
+        const naturalW = imgElement.naturalWidth || 800;
+        const naturalH = imgElement.naturalHeight || 600;
+
+        // 정밀한 좌표 측정을 위해 스캔 해상도를 1200px 수준으로 대폭 상향
+        const scale = Math.min(1, 1200 / naturalW);
+        const w = Math.round(naturalW * scale);
+        const h = Math.round(naturalH * scale);
+
+        analysisCanvas.width = w;
+        analysisCanvas.height = h;
+        analysisCtx.drawImage(imgElement, 0, 0, w, h);
+
+        const imgData = analysisCtx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        // 초정밀 격자(셀 크기 4px)로 변경하여 빨간색 경계를 칼같이 감지
+        const cellSize = 4;
+        const gridCols = Math.ceil(w / cellSize);
+        const gridRows = Math.ceil(h / cellSize);
+        const grid = new Uint8Array(gridCols * gridRows);
+
+        // 1. 빨간색 픽셀이 2개 이상 존재하는 정밀 셀 활성화
+        for (let y = 0; y < h; y += 1) {
+          for (let x = 0; x < w; x += 1) {
+            const idx = (y * w + x) * 4;
+            if (isRedPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
+              const cx = Math.floor(x / cellSize);
+              const cy = Math.floor(y / cellSize);
+              const cellIdx = cy * gridCols + cx;
+              if (grid[cellIdx] < 255) grid[cellIdx]++;
+            }
+          }
+        }
+
+        // 2. 인접 활성 셀 그룹화 (BFS 탐색)
+        const visited = new Uint8Array(gridCols * gridRows);
+        const clusters = [];
+
+        for (let cy = 0; cy < gridRows; cy++) {
+          for (let cx = 0; cx < gridCols; cx++) {
+            const idx = cy * gridCols + cx;
+            if (grid[idx] >= 1 && !visited[idx]) {
+              visited[idx] = 1;
+              const queue = [[cx, cy]];
+              let minX = cx * cellSize;
+              let maxX = (cx + 1) * cellSize;
+              let minY = cy * cellSize;
+              let maxY = (cy + 1) * cellSize;
+              let cellCount = 0;
+
+              while (queue.length > 0) {
+                const [currX, currY] = queue.shift();
+                cellCount++;
+
+                minX = Math.min(minX, currX * cellSize);
+                maxX = Math.max(maxX, (currX + 1) * cellSize);
+                minY = Math.min(minY, currY * cellSize);
+                maxY = Math.max(maxY, (currY + 1) * cellSize);
+
+                // 8방향 인접 셀 탐색
+                for (let dy = -1; dy <= 1; dy++) {
+                  for (let dx = -1; dx <= 1; dx++) {
+                    const nx = currX + dx;
+                    const ny = currY + dy;
+                    if (nx >= 0 && nx < gridCols && ny >= 0 && ny < gridRows) {
+                      const nIdx = ny * gridCols + nx;
+                      if (!visited[nIdx] && grid[nIdx] >= 1) {
+                        visited[nIdx] = 1;
+                        queue.push([nx, ny]);
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 아주 작은 노이즈 점 제외
+              if (cellCount >= 2) {
+                clusters.push({ minX, minY, maxX, maxY });
+              }
+            }
+          }
+        }
+
+        // 3. 근접한 박스들 병합 및 초슬림 여백(Padding 1~2px)만 적용하여 타이트하게 감싸기
+        const mergedBoxes = [];
+        const padding = 2; // 기존 8px -> 2px로 대폭 축소하여 옆 글자 침범 원천 차단
+
+        for (const c of clusters) {
+          const paddedMinX = Math.max(0, c.minX - padding);
+          const paddedMaxX = Math.min(w, c.maxX + padding);
+          const paddedMinY = Math.max(0, c.minY - padding);
+          const paddedMaxY = Math.min(h, c.maxY + padding);
+
+          let merged = false;
+          for (const m of mergedBoxes) {
+            // 병합 허용 거리를 기존 15px에서 5px로 줄여 다른 보기 번호와 묶이지 않도록 격리
+            if (!(paddedMinX > m.maxX + 5 || paddedMaxX < m.minX - 5 ||
+                  paddedMinY > m.maxY + 5 || paddedMaxY < m.minY - 5)) {
+              m.minX = Math.min(m.minX, paddedMinX);
+              m.maxX = Math.max(m.maxX, paddedMaxX);
+              m.minY = Math.min(m.minY, paddedMinY);
+              m.maxY = Math.max(m.maxY, paddedMaxY);
+              merged = true;
+              break;
+            }
+          }
+
+          if (!merged) {
+            mergedBoxes.push({
+              minX: paddedMinX,
+              maxX: paddedMaxX,
+              minY: paddedMinY,
+              maxY: paddedMaxY
+            });
+          }
+        }
+
+        // 백분율(%) 좌표로 최종 계산하여 반응형 리사이즈에 대응
+        const percentageMasks = mergedBoxes.map(b => ({
+          left: (b.minX / w) * 100,
+          top: (b.minY / h) * 100,
+          width: ((b.maxX - b.minX) / w) * 100,
+          height: ((b.maxY - b.minY) / h) * 100
+        }));
+
+        resolve(percentageMasks);
+      });
+    }
+
+    /**
+     * 파일명에서 '답' 뒤에 나오는 숫자(정답)를 추출하는 보조 정규식 (대체 지원용)
+     */
+    function extractAnswerFromFilename(filename) {
+      const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+      const directMatch = nameWithoutExt.match(/(?:정?답)\s*[:=\-_/]?\s*[\(\[\{]?\s*(\d+)\s*[\)\]\}]?/i);
+      if (directMatch && directMatch[1]) return directMatch[1];
+
+      const engMatch = nameWithoutExt.match(/(?:ans|answer)\s*[:=\-_/]?\s*[\(\[\{]?\s*(\d+)/i);
+      if (engMatch && engMatch[1]) return engMatch[1];
+
+      if (nameWithoutExt.includes("답")) {
+        const afterDap = nameWithoutExt.split("답")[1];
+        const numMatch = afterDap.match(/\d+/);
+        if (numMatch) return numMatch[0];
+      }
+      return null;
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const bgColors = {
+        info: 'bg-slate-900 border-slate-700 text-slate-200',
+        success: 'bg-emerald-950 border-emerald-700 text-emerald-200',
+        warning: 'bg-rose-950 border-rose-700 text-rose-200'
+      };
+
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl flex items-center gap-2.5 text-xs font-semibold transform transition-all duration-300 translate-y-3 opacity-0 ${bgColors[type] || bgColors.info}`;
+      
+      const iconName = type === 'success' ? 'check-circle' : (type === 'warning' ? 'alert-triangle' : 'info');
+      toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4"></i><span>${message}</span>`;
+      
+      container.appendChild(toast);
+      lucide.createIcons({ root: toast });
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-3', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function processFiles(fileList) {
+      const imageFiles = Array.from(fileList).filter(file => {
+        return file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(file.name);
+      });
+
+      if (imageFiles.length === 0) {
+        showToast('선택한 파일 중 이미지 파일이 없습니다.', 'warning');
+        return;
+      }
+
+      const isAppend = state.images.length > 0;
+      const startIndex = isAppend ? state.images.length : 0;
+
+      const newItems = imageFiles.map((file, idx) => {
+        return {
+          id: startIndex + idx,
+          name: file.name,
+          url: URL.createObjectURL(file),
+          parsedAnswer: extractAnswerFromFilename(file.name),
+          masks: null // 렌더링 시 스캔하여 캐싱
+        };
+      });
+
+      if (isAppend) {
+        state.images.push(...newItems);
+        showToast(`${newItems.length}개의 문제가 추가되었습니다. (총 ${state.images.length}문제)`, 'success');
+      } else {
+        state.images = newItems;
+        state.history = [];
+        state.historyPointer = -1;
+        showToast(`총 ${state.images.length}개의 문제를 불러왔습니다.`, 'success');
+        pickRandomQuestion();
+      }
+
+      dropzoneArea.classList.add('hidden');
+      quizContainer.classList.remove('hidden');
+
+      if (isAppend && state.historyPointer === -1) {
+        pickRandomQuestion();
+      }
+    }
+
+    function pickRandomQuestion() {
+      if (state.images.length === 0) return;
+
+      let nextIdx;
+      const total = state.images.length;
+      const currentIdx = state.historyPointer >= 0 ? state.history[state.historyPointer] : -1;
+
+      if (total > 1 && currentIdx !== -1) {
+        do {
+          nextIdx = Math.floor(Math.random() * total);
+        } while (nextIdx === currentIdx);
+      } else {
+        nextIdx = Math.floor(Math.random() * total);
+      }
+
+      if (state.historyPointer < state.history.length - 1) {
+        state.history = state.history.slice(0, state.historyPointer + 1);
+      }
+      state.history.push(nextIdx);
+      state.historyPointer++;
+
+      renderCurrentQuestion();
+    }
+
+    async function renderCurrentQuestion() {
+      if (state.historyPointer < 0 || state.historyPointer >= state.history.length) return;
+
+      const imgIdx = state.history[state.historyPointer];
+      const item = state.images[imgIdx];
+
+      hideAnswer();
+      maskLayer.innerHTML = ''; // 기존 마스크 클리어
+
+      // 이미지 로드 대기
+      currentImage.src = item.url;
+      await new Promise(r => {
+        if (currentImage.complete) r();
+        else currentImage.onload = () => r();
+      });
+
+      // 빨간색 영역 검사 (캐시되어 있지 않다면 최초 1회 감지 수행)
+      if (item.masks === null) {
+        item.masks = await detectRedRegions(currentImage);
+      }
+
+      if (item.masks && item.masks.length > 0) {
+        // 빨간색 마스킹: 테두리/아이콘/텍스트 없이 종이 배경과 같은 순수 흰색 사각형으로 위장
+        maskLayer.innerHTML = '';
+        item.masks.forEach((m) => {
+          const maskDiv = document.createElement('div');
+          maskDiv.className = 'answer-mask absolute pointer-events-none select-none';
+          maskDiv.style.left = `${m.left}%`;
+          maskDiv.style.top = `${m.top}%`;
+          maskDiv.style.width = `${m.width}%`;
+          maskDiv.style.height = `${m.height}%`;
+          // 최소 크기 강제 제한(18px)을 완전히 제거하여 빨간색 점 크기에만 딱 맞춤
+          maskDiv.innerHTML = '';
+          maskLayer.appendChild(maskDiv);
+        });
+      } else {
+        // 빨간색 표시가 없는 경우: 파일명 답 번호 여부 확인
+        if (item.parsedAnswer !== null) {
+          answerNumberText.textContent = item.parsedAnswer;
+          answerDetailText.textContent = `정답 번호: ${item.parsedAnswer}번 (파일명 기준)`;
+        } else {
+          answerNumberText.textContent = "?";
+          answerDetailText.textContent = "빨간색 표시나 파일명의 답 번호를 찾지 못했습니다.";
+        }
+      }
+
+      btnPrev.disabled = state.historyPointer <= 0;
+      btnPrev.classList.toggle('opacity-40', state.historyPointer <= 0);
+      btnPrev.classList.toggle('cursor-not-allowed', state.historyPointer <= 0);
+    }
+
+    function goToPrevQuestion() {
+      if (state.historyPointer > 0) {
+        state.historyPointer--;
+        renderCurrentQuestion();
+      }
+    }
+
+    function toggleAnswer() {
+      if (state.isAnswerRevealed) {
+        hideAnswer();
+      } else {
+        showAnswer();
+      }
+    }
+
+    function showAnswer() {
+      state.isAnswerRevealed = true;
+      btnToggleAnswerLabel.textContent = "정답 가리기";
+      btnToggleAnswerIcon.setAttribute('data-lucide', 'eye-off');
+
+      // 마스킹 스티커들을 투명하게 만들어 밑의 빨간 표시를 드러냄
+      const masks = maskLayer.querySelectorAll('.answer-mask');
+      if (masks.length > 0) {
+        masks.forEach(mask => mask.classList.add('revealed'));
+      } else {
+        // 빨간색이 없었던 이미지는 중앙 팝업 오버레이 표시
+        answerOverlay.classList.remove('hidden');
+        answerOverlay.classList.add('flex');
+      }
+      lucide.createIcons({ root: btnToggleAnswer });
+    }
+
+    function hideAnswer() {
+      state.isAnswerRevealed = false;
+      btnToggleAnswerLabel.textContent = "정답 확인 (가림막 열기)";
+      btnToggleAnswerIcon.setAttribute('data-lucide', 'eye');
+
+      const masks = maskLayer.querySelectorAll('.answer-mask');
+      masks.forEach(mask => mask.classList.remove('revealed'));
+
+      answerOverlay.classList.add('hidden');
+      answerOverlay.classList.remove('flex');
+      lucide.createIcons({ root: btnToggleAnswer });
+    }
+
+    if (btnSelectFiles && fileInput) {
+      btnSelectFiles.addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+      });
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          processFiles(e.target.files);
+        }
+      });
+    }
+
+    // Drag and Drop
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => e.preventDefault());
+
+    if (dropzoneArea) {
+      dropzoneArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzoneArea.classList.add('border-indigo-500', 'bg-indigo-950/30');
+      });
+
+      dropzoneArea.addEventListener('dragleave', () => {
+        dropzoneArea.classList.remove('border-indigo-500', 'bg-indigo-950/30');
+      });
+
+      dropzoneArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzoneArea.classList.remove('border-indigo-500', 'bg-indigo-950/30');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          processFiles(e.dataTransfer.files);
+        }
+      });
+
+      dropzoneArea.addEventListener('click', () => {
+        if (fileInput) fileInput.click();
+      });
+    }
+
+    // Click interactions
+    if (imageInteractionWrapper) {
+      imageInteractionWrapper.addEventListener('click', () => {
+        toggleAnswer();
+      });
+    }
+
+    if (btnToggleAnswer) {
+      btnToggleAnswer.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleAnswer();
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pickRandomQuestion();
+      });
+    }
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToPrevQuestion();
+      });
+    }
+
+    // Mobile & Tablet Touch Swipe
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 60) {
+        if (diffX < 0) {
+          pickRandomQuestion(); // Swipe Left -> Next
+        } else {
+          goToPrevQuestion();   // Swipe Right -> Prev
+        }
+      }
+    }, { passive: true });
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+      if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        e.preventDefault();
+        toggleAnswer();
+      } else if (e.code === 'ArrowRight' || e.code === 'Enter') {
+        e.preventDefault();
+        pickRandomQuestion();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        goToPrevQuestion();
+      }
+    });
+
+    // Initialize Lucide icons on boot
+    function initIcons() {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initIcons);
+    setTimeout(initIcons, 100);
+  </script>
+</body>
+</html>
